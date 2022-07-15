@@ -1,3 +1,8 @@
+---
+title: Mongo on Fly
+publish_date: 2022-07-15
+---
+
 # How to set up a mongo replica set on fly.io
 
 ## Setting up Mongo
