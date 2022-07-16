@@ -122,7 +122,7 @@ export async function toggleItem (id, completed) {
 
 Replace `app/routes/index.jsx` with
 
-```js
+```jsx
 import { json } from '@remix-run/node'
 import { Form, useLoaderData } from '@remix-run/react'
 
