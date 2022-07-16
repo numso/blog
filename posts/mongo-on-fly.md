@@ -7,9 +7,9 @@ publish_date: 2022-07-15
 
 ## Setting up Mongo
 
-This post will take you through creating a 3-node mongo cluster on fly.io. You'll probably want to select your own name/size/location for your cluster. In the post we'll be provisioning a 3gb database called `blerpy` in the USA. Make sure you've got the fly cli installed.
+This post will take you through creating a 3-node mongo cluster on [fly.io](https://fly.io). We'll be provisioning a 3gb database called `blerpy` in the USA. You'll probably want to select your own name/size/location for your cluster. Read each command carefully and replace our variables with the ones you choose. Make sure you've got the fly cli installed.
 
-Let's start by creating our mongo nodes. Create a new folder and navigate into it. Create a file called `Dockerfile` and paste the following into it. Replace `blerpy` with whatever name you chose.
+Let's start by creating our mongo nodes. Create and navigate into a new folder. Add a `Dockerfile` with the following contents.
 
 ```dockerfile
 FROM mongo:5
@@ -17,9 +17,21 @@ ENV FLY_REGION=404
 CMD mongod --replSet blerpy --ipv6 --bind_ip localhost,$FLY_REGION.blerpy.internal
 ```
 
-Run `fly launch --name blerpy --no-deploy` to auto create a fly.toml in that folder. Now that you've got an app provisioned in fly, run `fly volumes create -r ewr -s 3 blerpy_data` and `fly volumes create -r dfw -s 3 blerpy_data` and `fly volumes create -r lax -s 3 blerpy_data`. Replace `3` with your desired size, `ewr`/`dfw`/`lax` with your desired regions, and `blerpy_data` with `<YOUR_NAME>_data`. Next you'll want to run `fly scale count 3` and `fly scale vm dedicated-cpu-1x`. This ensures our mongo nodes have enough resources to do their things.
+Run `fly launch --name blerpy --no-deploy` to auto create a fly.toml in that folder. Now that you've got an app provisioned in fly we need to create and attach some volumes.
 
-Modify your fly.toml to look something like this. Add `[mounts]` so mongo stores its data in our newly created volumes. Update the internal_port to 27017. Remove the public endpoint. Bump the concurrency limits up. We're also temporarily disabling the tcp checks. We can turn them back on once the replica set has been configured.
+- `fly volumes create -r ewr -s 3 blerpy_data`
+- `fly volumes create -r dfw -s 3 blerpy_data`
+- `fly volumes create -r lax -s 3 blerpy_data`.
+
+Next you'll want to run `fly scale count 3` and `fly scale vm dedicated-cpu-1x`. This ensures our mongo nodes have enough resources to do their things.
+
+Modify your fly.toml in the following ways.
+
+- Add `[mounts]` so mongo stores its data in our newly created volumes.
+- Update the internal_port to 27017.
+- Remove the public endpoint.
+- Bump the concurrency limits up.
+- Temporarily disabling the tcp checks.
 
 ```toml
 app = "blerpy"
@@ -57,7 +69,7 @@ processes = []
   #   timeout = "2s"
 ```
 
-The time has come! Run `fly deploy`. Once that's finished we'll need to configure the replicaset inside mongo. Run `fly ssh console`. Once that has been set up, paste the following into the terminal. Replace the regions and names with the ones you chose.
+The time has come! Run `fly deploy`. Once that's finished we'll need to configure the replicaset inside mongo. Run `fly ssh console`. Once that has been set up, run the following command in your ssh session.
 
 ```sh
 mongosh --eval "rs.initiate({
@@ -70,7 +82,7 @@ mongosh --eval "rs.initiate({
 })"
 ```
 
-That's it! Your cluster is now up and running. You can see more details about it by running `mongosh --eval "rs.status()"` over ssh. Use this connection string to connect to your db (with your regions/names replaced): `mongodb://dfw.blerpy.internal:27017,ewr.blerpy.internal:27017,lax.blerpy.internal:27017/?replicaSet=blerpy`.
+That's it! Your cluster is now up and running. You can uncomment your health checks at this point. You can see more details about it by running `mongosh --eval "rs.status()"` over ssh. Use this connection string to connect to your db: `mongodb://dfw.blerpy.internal:27017,ewr.blerpy.internal:27017,lax.blerpy.internal:27017/?replicaSet=blerpy`.
 
 ## Setting up a UI to validate your cluster
 
@@ -122,7 +134,7 @@ export async function toggleItem (id, completed) {
 
 Replace `app/routes/index.jsx` with
 
-```jsx
+```js
 import { json } from '@remix-run/node'
 import { Form, useLoaderData } from '@remix-run/react'
 
@@ -215,6 +227,8 @@ export default function Index () {
   )
 }
 ```
+
+Run `fly deploy` and go visit your app. If all goes well you should be able to add/toggle/remove todos from a list stored in mongo.
 
 ## What's next?
 
