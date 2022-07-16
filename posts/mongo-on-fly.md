@@ -236,3 +236,4 @@ Run `fly deploy` and go visit your app. If all goes well you should be able to a
 - Test what happens when you deploy a new version of the mongo docker container while the app is running
 - Test what happens when you kill and then re-deploy one of the nodes
 - Test what happens when you scale up the storage while the app is running
+- Test snapshots and backups
